@@ -38,3 +38,12 @@ class Conversion:
         bytes_list = bytes(int(byte, 2) for byte in chunks_8bits)
     
         return bytes_list
+    
+    @staticmethod
+    def ints_to_bits(ints):
+        bit_list = [0]*(len(ints)*8)
+        for i in range(len(ints)):
+            for j in range(8):
+                bit_list[i*8 + j] = ints[i] % 2
+                ints[i] = ints[i] // 2
+        return bit_list
