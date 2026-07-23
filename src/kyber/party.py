@@ -102,6 +102,9 @@ class SimplifiedCommunicationParty:
     
 
 class CommunicationPartyPKE:
+    """
+    Public Key Encryption (PKE) class used in Kyber.
+    """
     def __init__(self, parameters: KyberParameters):
         self.parameters = parameters
         self.A_hat = None
@@ -113,6 +116,9 @@ class CommunicationPartyPKE:
         self.zetas_for_multiply = NTT.generate_zetas_for_multiply(self.parameters.n//2, self.parameters.z, self.parameters.q)
 
     def generate_public_key(self, d_bytes:bytes = None) -> tuple[list[int], list[list[int]]]:
+        """
+        K-PKE.KeyGen - generate public key (ro, t_hat) and private key s_hat.
+        """
         if d_bytes is None:
             d_bytes = Randomness.random_bytes(self.parameters.n)
 
@@ -137,11 +143,17 @@ class CommunicationPartyPKE:
         return (self.ro, self.t_hat)
 
     def obtain_key(self, key:tuple[list[int], list[list[int]]]):
+        """
+        Obtain and store the public key (ro, t_hat) from another party.
+        """
         self.ro = key[0]
         self.t_hat = key[1]
         self.A_hat = NTT.generate_square_matrix_NTT_from_ro(self.ro, self.parameters.q, self.parameters.k, self.parameters.n)
 
     def encrypt(self, text_in_bytes:bytes, randomness:list[int] = None) -> tuple[list[list[int]], list[int]]:
+        """
+        K-PKE.Encrypt - encrypt a byte message using public key (ro, t_hat) and randomness r.
+        """
         if randomness is None:
             randomness = Randomness.random_ints(self.parameters.n)
         
@@ -177,6 +189,9 @@ class CommunicationPartyPKE:
         return (c1, c2)
 
     def decrypt(self, ciphertext:tuple[list[list[int]], list[int]]) -> bytes:
+        """
+        K-PKE.Decrypt - decrypt a ciphertext using private key s_hat.
+        """
         c1, c2 = ciphertext
         u_prim = Compression.decompress_vector(c1, self.parameters.q, self.parameters.du)
         v_prim = Compression.decompress_polynomial(c2, self.parameters.q, self.parameters.dv)
@@ -193,12 +208,18 @@ class CommunicationPartyPKE:
     
 
 class CommunicationPartyKEM(CommunicationPartyPKE):
+    """
+    Key Encapsulation Mechanism (KEM) class used in Kyber.
+    """
     def __init__(self, parameters: KyberParameters):
         super().__init__(parameters)
         self.dk = None
         self.ek = None
 
     def key_generation_internal(self, d_bytes:bytes, z_bytes:bytes) -> tuple[list[int], list[list[int]]]:
+        """
+        ML-KEM.KeyGen_internal - generate encapsulation and decapsulation keys (ek, dk) using randomness d and z.
+        """
         ek_PKE = self.generate_public_key(d_bytes)
         dk_PKE = self.s_hat
 
@@ -211,7 +232,9 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         return (ek_PKE, dk)
 
     def key_generation(self) -> tuple[list[int], list[list[int]]]:
-
+        """
+        ML-KEM.KeyGen - generate encapsulation and decapsulation keys (ek, dk)
+        """
         d_bytes = Randomness.random_bytes(self.parameters.n)
         z_bytes = Randomness.random_bytes(self.parameters.n)
 
@@ -223,10 +246,16 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         return ek
 
     def obtain_key(self, key:tuple[list[int], list[list[int]]]):
+        """
+        Obtain and store the public key ek from another party.
+        """
         super().obtain_key(key)
         self.ek = key
 
     def encapsulate_internal(self, m_bytes:bytes) -> tuple[list[int], tuple[list[list[int]], list[int]]]:
+        """
+        ML-KEM.Encaps_internal - generate a key and an associated ciphertext using encapsulation key ek and randomness m.
+        """
         ek_ints = self.ek[0] + [coefficient for polynomial in self.ek[1] for coefficient in polynomial]
         ek_bytes = b''.join(num.to_bytes(2, 'big') for num in ek_ints)
         H_ek = Hash.H(ek_bytes)
@@ -239,7 +268,9 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         return (K, c)
     
     def encapsulate(self) -> tuple[list[int], tuple[list[list[int]], list[int]]]:
-
+        """
+        ML-KEM.Encaps - generate a shared secret key and an associated ciphertext using encapsulation key ek.
+        """
         m_bytes = Randomness.random_bytes(self.parameters.n)
 
         K, c = self.encapsulate_internal(m_bytes)
@@ -247,6 +278,9 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         return (K, c)
     
     def decapsulate_internal(self, ciphertext:tuple[list[list[int]], list[int]]) -> list[int]:
+        """
+        ML-KEM.Decaps_internal - produce a shared secret key from ciphertext using the decapsulation key dk.
+        """
         m_prime = self.decrypt(ciphertext)
 
         ek_ints = self.ek[0] + [coefficient for polynomial in self.ek[1] for coefficient in polynomial]
@@ -270,5 +304,8 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
             return K_prime
 
     def decapsulate(self, ciphertext:tuple[list[list[int]], list[int]]) -> list[int]:
+        """
+        ML-KEM.Decaps - produce a shared secret key from ciphertext using the decapsulation key dk.
+        """
         K_prime = self.decapsulate_internal(ciphertext)
         return K_prime
