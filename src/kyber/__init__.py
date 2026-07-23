@@ -1,6 +1,6 @@
 from .parameters import KyberParameters, SimplifiedKyberParameters
 from .party import (
-    CommunicationParty,
+    CommunicationPartyPKE,
     CommunicationPartyKEM,
     SimplifiedCommunicationParty,
 )
@@ -8,7 +8,7 @@ from .party import (
 __all__ = [
     "KyberParameters",
     "SimplifiedKyberParameters",
-    "CommunicationParty",
+    "CommunicationPartyPKE",
     "CommunicationPartyKEM",
     "SimplifiedCommunicationParty",
 ]

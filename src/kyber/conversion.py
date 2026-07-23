@@ -2,7 +2,12 @@ class Conversion:
     ''' Functions for converting between bitstrings, polynomials, and bytes representations. '''
     
     @staticmethod
-    def bitstring_to_polynomial(m, n):
+    def bitstring_to_polynomial(m:str, n:int) -> list[int]:
+        """
+        Args:
+            m (str): The bitstring to convert.
+            n (int): The size of the polynomial.
+        """
         f = [0] * n
         for i in range(n):
             if m[i] == "1":
@@ -10,7 +15,12 @@ class Conversion:
         return f
 
     @staticmethod
-    def polynomial_to_bitstring(f, n):
+    def polynomial_to_bitstring(f:list[int], n:int) -> str:
+        """
+        Args:
+            f (list[int]): The polynomial to convert.
+            n (int): The size of the polynomial.
+        """
         m = ""
         for i in range(n):
             if f[i] == 1:
@@ -20,7 +30,12 @@ class Conversion:
         return m
     
     @staticmethod
-    def text_in_bytes_to_bitstring(text_in_bytes, n):
+    def text_in_bytes_to_bitstring(text_in_bytes:bytes, n:int) -> str:
+        """
+        Args:
+            text_in_bytes (bytes): The bytes to convert.
+            n (int): The length of the bitstring.
+        """
         bitstring = ""
         
         for byte in text_in_bytes:
@@ -33,14 +48,23 @@ class Conversion:
         return bitstring
     
     @staticmethod
-    def bitstring_to_text_in_bytes(bitstring, n):
+    def bitstring_to_text_in_bytes(bitstring:str, n:int) -> bytes:
+        """
+        Args:
+            bitstring (str): The bitstring to convert.
+            n (int): The length of the bitstring.
+        """
         chunks_8bits = [bitstring[i:i+8] for i in range(0, n, 8)]
         bytes_list = bytes(int(byte, 2) for byte in chunks_8bits)
     
         return bytes_list
     
     @staticmethod
-    def ints_to_bits(ints):
+    def ints_to_bits(ints:list[int]) -> list[int]:
+        """
+        Args:
+            ints (list[int]): The list of integers to convert.
+        """
         bit_list = [0]*(len(ints)*8)
         for i in range(len(ints)):
             for j in range(8):

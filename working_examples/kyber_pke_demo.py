@@ -1,11 +1,11 @@
 from poems import poems
 
-from kyber import CommunicationParty, KyberParameters
+from kyber import CommunicationPartyPKE, KyberParameters
 
 
 kyber_parameters = KyberParameters()
-Alice = CommunicationParty(kyber_parameters)
-Bob = CommunicationParty(kyber_parameters)
+Alice = CommunicationPartyPKE(kyber_parameters)
+Bob = CommunicationPartyPKE(kyber_parameters)
 
 Alice_public_key = Alice.generate_public_key()
 
