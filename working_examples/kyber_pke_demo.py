@@ -1,9 +1,9 @@
 from poems import poems
 
-from kyber import CommunicationPartyPKE, KyberParameters
+from kyber import CommunicationPartyPKE, ML_KEM_512, ML_KEM_768, ML_KEM_1024
 
+kyber_parameters = ML_KEM_768 # or ML_KEM_512 or ML_KEM_1024
 
-kyber_parameters = KyberParameters()
 Alice = CommunicationPartyPKE(kyber_parameters)
 Bob = CommunicationPartyPKE(kyber_parameters)
 

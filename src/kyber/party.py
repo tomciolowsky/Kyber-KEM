@@ -105,7 +105,10 @@ class CommunicationPartyPKE:
     """
     Public Key Encryption (PKE) class used in Kyber.
     """
-    def __init__(self, parameters: KyberParameters):
+    def __init__(self, parameters: KyberParameters | str = "ML_KEM_768"):
+        if isinstance(parameters, str):
+            parameters = KyberParameters.match_name(parameters)
+
         self.parameters = parameters
         self.A_hat = None
         self.s_hat = None
@@ -211,7 +214,7 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
     """
     Key Encapsulation Mechanism (KEM) class used in Kyber.
     """
-    def __init__(self, parameters: KyberParameters):
+    def __init__(self, parameters: KyberParameters | str = "ML_KEM_768"):
         super().__init__(parameters)
         self.dk = None
         self.ek = None

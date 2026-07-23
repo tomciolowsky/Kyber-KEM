@@ -1,8 +1,10 @@
-from kyber import CommunicationPartyKEM, KyberParameters
+from kyber import CommunicationPartyKEM, ML_KEM_512, ML_KEM_768, ML_KEM_1024
 
-kyber_parameters = KyberParameters()
-Alice = CommunicationPartyKEM(kyber_parameters)
-Bob = CommunicationPartyKEM(kyber_parameters)
+kyber_parameters = ML_KEM_768 # or ML_KEM_512 or ML_KEM_1024
+kyber_parameters_str = "ML_KEM_768" # or "ML_KEM_512" or "ML_KEM_1024"
+
+Alice = CommunicationPartyKEM(kyber_parameters) # or kyber_parameters_str
+Bob = CommunicationPartyKEM(kyber_parameters) # or kyber_parameters_str
 
 Alice_public_key = Alice.key_generation()
 
