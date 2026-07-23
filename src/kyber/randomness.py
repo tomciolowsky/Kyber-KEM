@@ -1,6 +1,6 @@
 from hashlib import shake_256
 from random import randint
-from modules.Conversion import Conversion
+from .conversion import Conversion
 
 class Randomness:
     ''' Random and Pseudo-random functions used in Kyber '''

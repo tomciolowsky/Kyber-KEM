@@ -1,11 +1,12 @@
 from random import randint
-from modules.Compression import Compression
-from modules.Conversion import Conversion
-from modules.NTT import NTT
-from modules.MathOperations import MathOperations
-from modules.KyberParameters import SimplifiedKyberParameters, KyberParameters
-from modules.Randomness import Randomness
-from modules.Hash import Hash
+
+from .compression import Compression
+from .conversion import Conversion
+from .ntt import NTT
+from .math_operations import MathOperations
+from .parameters import SimplifiedKyberParameters, KyberParameters
+from .randomness import Randomness
+from .hash import Hash
 
 
 class SimplifiedCommunicationParty:

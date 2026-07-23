@@ -1,6 +1,7 @@
-from modules.KyberParameters import KyberParameters
-from modules.CommunicationParty import CommunicationParty
-from modules.Poems import poems
+from poems import poems
+
+from kyber import CommunicationParty, KyberParameters
+
 
 kyber_parameters = KyberParameters()
 Alice = CommunicationParty(kyber_parameters)

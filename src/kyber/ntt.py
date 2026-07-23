@@ -1,5 +1,5 @@
 from hashlib import shake_128
-from modules.MathOperations import MathOperations
+from .math_operations import MathOperations
 
 class NTT:
     ''' Functions for working in the Kyber Number Theoretic Transform **(NTT)** domain. '''
