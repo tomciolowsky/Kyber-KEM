@@ -220,21 +220,20 @@ class MathOperations:
         return result
 
     @staticmethod
-    def matrix_transpose(A:list[list[list[int]]], k:int, n:int) -> list[list[list[int]]]:
+    def matrix_transpose(A:list[list[list[int]]], k:int) -> list[list[list[int]]]:
         """
         Transpose a square matrix A of vectors of polynomials.
 
         Args:
             A (list[list[list[int]]]): The square matrix of polynomials.
             k (int): Size of the square matrix.
-            n (int): The degree of the ring.
 
         Returns:
             list[list[list[int]]]: The transposed matrix of polynomials.
         """
-        result = [[0] * k for _ in range(n)]
+        result = [[0] * k for _ in range(k)]
         for i in range(k):
-            for j in range(n):
+            for j in range(k):
                 result[j][i] = A[i][j]
         return result
     

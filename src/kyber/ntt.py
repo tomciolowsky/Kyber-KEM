@@ -65,11 +65,14 @@ class NTT:
             list[int]: The sampled polynomial.
         """
         shake = shake_128(seed)
+        stream = shake.digest(n*4)
         j = 0
+        offset = 0
         a_hat = [0] * n
         while j < n:
-            hash_bytes = shake.digest(3)
-            shake.update(hash_bytes)
+            
+            hash_bytes = stream[offset*3:(offset+1)*3]
+            offset += 1
             hash_ints = [int(byte) for byte in hash_bytes]
             d1 = hash_ints[0] + n*(hash_ints[1]%16)
             d2 = int(hash_ints[1]//16) + 16*hash_ints[2]
