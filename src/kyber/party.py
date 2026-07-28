@@ -245,6 +245,23 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
 
         return (ek, dk)
 
+    def check_valid_ek(self, ek:tuple[list[int], bytes]) -> bool:
+        """
+        Check if the encapsulation key ek is valid.
+        """
+        ro, t_hat_encoded = ek
+        if len(ro) != 32:
+            return False
+        if len(t_hat_encoded) != self.parameters.k * 384:
+            return False
+
+        t_hat = Conversion.vector_byte_decode(t_hat_encoded, self.parameters.k, 12)
+        test = Conversion.vector_byte_encode(t_hat, 12)
+        if test != t_hat_encoded:
+            return False
+
+        return True
+
     def encapsulate_internal(self, ek:tuple[list[int], bytes], m_bytes:bytes) -> tuple[list[int], tuple[bytes, bytes]]:
         """
         ML-KEM.Encaps_internal - generate a key and an associated ciphertext using encapsulation key ek and randomness m.
@@ -265,11 +282,37 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         """
         ML-KEM.Encaps - generate a shared secret key and an associated ciphertext using encapsulation key ek.
         """
+        if not self.check_valid_ek(ek):
+            raise ValueError("Invalid encapsulation key.")
+
         m_bytes = Randomness.random_bytes(self.parameters.n)
 
         K, c = self.encapsulate_internal(ek, m_bytes)
         
         return (K, c)
+
+    def check_valid_dk(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes]) -> bool:
+        """
+        Check if the decapsulation key dk is valid.
+        """
+        dk_PKE, ek_PKE, H_ek_bytes, z_bytes = dk
+
+        if len(dk_PKE) != self.parameters.k * 384:
+            return False
+        if not self.check_valid_ek(ek_PKE):
+            return False
+        if len(H_ek_bytes) != 32:
+            return False
+        if len(z_bytes) != 32:
+            return False
+
+        ro, t_hat_encoded = ek_PKE
+        ek_bytes = t_hat_encoded + bytes(ro)
+        test = Hash.H(ek_bytes)
+        if bytes(test) != H_ek_bytes:
+            return False
+
+        return True
     
     def decapsulate_internal(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes], ciphertext:tuple[bytes, bytes]) -> list[int]:
         """
@@ -292,9 +335,12 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         else:
             return K_prime
 
-    def decapsulate(self, dk:tuple[list[list[int]], tuple[list[int], bytes], bytes, bytes], ciphertext:tuple[bytes, bytes]) -> list[int]:
+    def decapsulate(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes], ciphertext:tuple[bytes, bytes]) -> list[int]:
         """
         ML-KEM.Decaps - produce a shared secret key from ciphertext using the decapsulation key dk.
         """
+        if not self.check_valid_dk(dk):
+            raise ValueError("Invalid decapsulation key.")
+
         K_prime = self.decapsulate_internal(dk, ciphertext)
         return K_prime
