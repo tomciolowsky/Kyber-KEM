@@ -2,7 +2,7 @@ import json
 import pathlib
 import pytest
 
-from .adapters import NIST_to_CommunicationPartyKEM
+from tests.adapters import NIST_to_CommunicationPartyKEM
 
 VECTORS_DIR = pathlib.Path(__file__).parent / "vectors"
 VECTOR_FILES = ["encap_decap.json", "key_gen.json"]
@@ -37,6 +37,8 @@ def load_test_cases():
 
 
 ALL_TEST_CASES = load_test_cases()
+if not ALL_TEST_CASES:
+    pytest.skip("No test vectors found in tests/vectors.", allow_module_level=True)
 
 @pytest.mark.parametrize("param_set, function_type, test_case", ALL_TEST_CASES)
 def test_kem_with_nist_vectors(param_set, function_type, test_case):
