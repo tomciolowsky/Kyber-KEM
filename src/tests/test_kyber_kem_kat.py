@@ -4,25 +4,34 @@ import pytest
 
 from .adapters import NIST_to_CommunicationPartyKEM
 
-VECTORS_PATH = pathlib.Path(__file__).parent / "vectors" / "internalProjection.json"
+VECTORS_DIR = pathlib.Path(__file__).parent / "vectors"
+VECTOR_FILES = ["encap_decap.json", "key_gen.json"]
 
 
 def load_test_cases():
-    if not VECTORS_PATH.exists():
+    if not VECTORS_DIR.exists():
         return []
     
-    with open(VECTORS_PATH, "r") as f:
-        data = json.load(f)
-    
     cases = []
-    for group in data.get("testGroups", []):
 
-        param_set = group["parameterSet"]
-        function_type = group["function"]
+    for vector_file in VECTOR_FILES:
+        file_path = VECTORS_DIR / vector_file
+        if not file_path.exists():
+            continue
 
-        for test in group.get("tests", []):
-            test_id = f"{param_set}-{function_type}-tcId_{test['tcId']}"
-            cases.append(pytest.param(param_set, function_type, test, id=test_id))
+        with open(file_path, "r") as f:
+            data = json.load(f)
+
+        file_mode = data.get("mode", None)
+
+        for group in data.get("testGroups", []):
+
+            param_set = group["parameterSet"]
+            function_type = group.get("function", file_mode)
+
+            for test in group.get("tests", []):
+                test_id = f"{param_set}-{function_type}-tcId_{test['tcId']}"
+                cases.append(pytest.param(param_set, function_type, test, id=test_id))
             
     return cases
 
@@ -38,39 +47,66 @@ def test_kem_with_nist_vectors(param_set, function_type, test_case):
     adapter = NIST_to_CommunicationPartyKEM(param_set)
     kem = adapter.kem
 
-    if function_type == "encapsulation":
-        ek_hex = test_case["ek"]
-        m_hex = test_case["m"]
+    match function_type:
 
-        expected_c_hex = test_case["c"]
-        expected_k_hex = test_case["k"]
+        case "keyGen":
+            z_hex = test_case["z"]
+            d_hex = test_case["d"]
+            expected_ek_hex = test_case["ek"]
+            expected_dk_hex = test_case["dk"]
 
-        ek_bytes = bytes.fromhex(ek_hex)
+            z_bytes = bytes.fromhex(z_hex)
+            d_bytes = bytes.fromhex(d_hex)
 
-        ek = adapter.unpack_encapsulation_key(ek_bytes)
-        m_bytes = bytes.fromhex(m_hex)
+            ek, dk = kem.key_generation_internal(d_bytes, z_bytes)
+            ek_computed = adapter.pack_encapsulation_key(ek)
+            dk_computed = adapter.pack_decapsulation_key(dk)
 
-        K, c = kem.encapsulate_internal(ek, m_bytes)
+            assert ek_computed == expected_ek_hex
+            assert dk_computed == expected_dk_hex
 
-        K_computed = bytearray(K).hex().upper()
-        c_computed = adapter.pack_ciphertext(c).hex().upper()
+        case "encapsulation":
+            ek_hex = test_case["ek"]
+            m_hex = test_case["m"]
     
-        assert K_computed == expected_k_hex
-        assert c_computed == expected_c_hex
+            expected_c_hex = test_case["c"]
+            expected_k_hex = test_case["k"]
+    
+            ek = adapter.unpack_encapsulation_key(ek_hex)
+            m_bytes = bytes.fromhex(m_hex)
+    
+            K, c = kem.encapsulate_internal(ek, m_bytes)
+    
+            K_computed = adapter.pack_shared_secret(K)
+            c_computed = adapter.pack_ciphertext(c)
+        
+            assert K_computed == expected_k_hex
+            assert c_computed == expected_c_hex
 
-    elif function_type == "decapsulation":
-        dk_hex = test_case["dk"]
-        c_hex = test_case["c"]
+        case "decapsulation":
+            dk_hex = test_case["dk"]
+            c_hex = test_case["c"]
+    
+            expected_k_hex = test_case["k"]
+    
+            dk = adapter.unpack_decapsulation_key(dk_hex)
+            c = adapter.unpack_ciphertext(c_hex)
+    
+            K = kem.decapsulate_internal(dk, c)
+            K_computed = adapter.pack_shared_secret(K)
+    
+            assert K_computed == expected_k_hex
 
-        k_hex = test_case["k"]
+        case "encapsulationKeyCheck":
+            ek_hex = test_case["ek"]
+            ek = adapter.unpack_encapsulation_key(ek_hex)
+            is_valid = kem.check_valid_ek(ek)
 
-        dk_bytes = bytes.fromhex(dk_hex)
-        dk = adapter.unpack_decapsulation_key(dk_bytes)
+            assert is_valid == test_case["testPassed"]
 
-        c_bytes = bytes.fromhex(c_hex)
-        c = adapter.unpack_ciphertext(c_bytes)
+        case "decapsulationKeyCheck":
+            dk_hex = test_case["dk"]
+            dk = adapter.unpack_decapsulation_key(dk_hex)
+            is_valid = kem.check_valid_dk(dk)
 
-        K = kem.decapsulate_internal(dk, c)
-        K_computed = bytearray(K).hex().upper()
-
-        assert K_computed == k_hex
+            assert is_valid == test_case["testPassed"]
