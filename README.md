@@ -1,5 +1,7 @@
 # Kyber-KEM
 
+![Tests](https://github.com/tomciolowsky/Kyber-KEM/actions/workflows/test.yml/badge.svg)
+
 My implementation of the Kyber Key Encapsulation Mechanism - standardized by NIST as **ML-KEM**. 
 This cryptographic approach was designed as quantum-secure, which means that It makes key exchanges viable even in case of future quantum attacks. 
 
@@ -26,3 +28,14 @@ This cryptographic approach was designed as quantum-secure, which means that It 
 * Dilithium paper:
 
     [FIPS 204](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf)
+
+### Test vectors
+* Official NIST repository:
+
+    [ACVP REPO](https://github.com/usnistgov/ACVP-Server)
+
+* Test vector files:
+
+    [ENCAP-DECAP](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-encapDecap-FIPS203)
+
+    [KEYGEN](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-keyGen-FIPS203)
