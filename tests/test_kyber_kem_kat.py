@@ -61,8 +61,8 @@ def test_kem_with_nist_vectors(param_set, function_type, test_case):
             d_bytes = bytes.fromhex(d_hex)
 
             ek, dk = kem.key_generation_internal(d_bytes, z_bytes)
-            ek_computed = adapter.pack_encapsulation_key(ek)
-            dk_computed = adapter.pack_decapsulation_key(dk)
+            ek_computed = adapter.hex_format(ek)
+            dk_computed = adapter.hex_format(dk)
 
             assert ek_computed == expected_ek_hex
             assert dk_computed == expected_dk_hex
@@ -74,13 +74,13 @@ def test_kem_with_nist_vectors(param_set, function_type, test_case):
             expected_c_hex = test_case["c"]
             expected_k_hex = test_case["k"]
     
-            ek = adapter.unpack_encapsulation_key(ek_hex)
+            ek = adapter.bytes_format(ek_hex)
             m_bytes = bytes.fromhex(m_hex)
     
             K, c = kem.encapsulate_internal(ek, m_bytes)
     
-            K_computed = adapter.pack_shared_secret(K)
-            c_computed = adapter.pack_ciphertext(c)
+            K_computed = adapter.hex_format(K)
+            c_computed = adapter.hex_format(c)
         
             assert K_computed == expected_k_hex
             assert c_computed == expected_c_hex
@@ -91,24 +91,24 @@ def test_kem_with_nist_vectors(param_set, function_type, test_case):
     
             expected_k_hex = test_case["k"]
     
-            dk = adapter.unpack_decapsulation_key(dk_hex)
-            c = adapter.unpack_ciphertext(c_hex)
+            dk = adapter.bytes_format(dk_hex)
+            c = adapter.bytes_format(c_hex)
     
             K = kem.decapsulate_internal(dk, c)
-            K_computed = adapter.pack_shared_secret(K)
+            K_computed = adapter.hex_format(K)
     
             assert K_computed == expected_k_hex
 
         case "encapsulationKeyCheck":
             ek_hex = test_case["ek"]
-            ek = adapter.unpack_encapsulation_key(ek_hex)
+            ek = adapter.bytes_format(ek_hex)
             is_valid = kem.check_valid_ek(ek)
 
             assert is_valid == test_case["testPassed"]
 
         case "decapsulationKeyCheck":
             dk_hex = test_case["dk"]
-            dk = adapter.unpack_decapsulation_key(dk_hex)
+            dk = adapter.bytes_format(dk_hex)
             is_valid = kem.check_valid_dk(dk)
 
             assert is_valid == test_case["testPassed"]
