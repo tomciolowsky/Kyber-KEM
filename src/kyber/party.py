@@ -113,9 +113,9 @@ class CommunicationPartyPKE:
         self.zetas_for_NTT = NTT.generate_zetas_for_NTT(self.parameters.n//2, self.parameters.z, self.parameters.q)
         self.zetas_for_multiply = NTT.generate_zetas_for_multiply(self.parameters.n//2, self.parameters.z, self.parameters.q)
 
-    def key_generation_PKE(self, d_bytes:bytes = None) -> tuple[tuple[list[int], bytes], bytes]:
+    def key_generation_PKE(self, d_bytes:bytes = None) -> tuple[bytes, bytes]:
         """
-        K-PKE.KeyGen - generate public key (ro, t_hat) and private key s_hat.
+        K-PKE.KeyGen - generate public key (t_hat + ro) and private key s_hat.
         """
         if d_bytes is None:
             d_bytes = Randomness.random_bytes(self.parameters.n)
@@ -139,26 +139,27 @@ class CommunicationPartyPKE:
         t_hat_encoded = Conversion.vector_byte_encode(t_hat, 12)
         s_hat_encoded = Conversion.vector_byte_encode(s_hat, 12)
 
-        ek_PKE = (ro, t_hat_encoded)
+        ek_PKE = t_hat_encoded+bytes(ro)
         dk_PKE = s_hat_encoded
 
         return (ek_PKE, dk_PKE)
 
-    def encrypt(self, ek_PKE:tuple[list[int], bytes], text_in_bytes:bytes, randomness:list[int] = None) -> tuple[bytes, bytes]:
+    def encrypt(self, ek_PKE:bytes, text_in_bytes:bytes, randomness:list[int] = None) -> bytes:
         """
-        K-PKE.Encrypt - encrypt a byte message using public key (ro, t_hat) and randomness r.
+        K-PKE.Encrypt - encrypt a byte message using public key (t_hat + ro) and randomness r.
         """
         if randomness is None:
             randomness = Randomness.random_ints(self.parameters.n)
 
-        ro, t_hat_encoded = ek_PKE
+        t_hat_encoded = ek_PKE[:self.parameters.k * 384]
+        ro =  ek_PKE[self.parameters.k * 384:]
         t_hat = Conversion.vector_byte_decode(t_hat_encoded, self.parameters.k, 12)
         
         m = Conversion.byte_decode(text_in_bytes, 1)
 
         n_counter = 0
 
-        A_hat = NTT.generate_square_matrix_NTT_from_ro(ro, self.parameters.q, self.parameters.k, self.parameters.n)
+        A_hat = NTT.generate_square_matrix_NTT_from_ro(list(ro), self.parameters.q, self.parameters.k, self.parameters.n)
         
         r = Randomness.generate_vector(self.parameters.q, self.parameters.k, self.parameters.n, self.parameters.eta1, randomness, n_counter)
         n_counter += self.parameters.k
@@ -186,14 +187,16 @@ class CommunicationPartyPKE:
 
         c1_encoded = Conversion.vector_byte_encode(c1, self.parameters.du)
         c2_encoded = Conversion.byte_encode(c2, self.parameters.dv)
+        c = c1_encoded + c2_encoded
+        return c
 
-        return (c1_encoded, c2_encoded)
-
-    def decrypt(self, dk_PKE:bytes, ciphertext:tuple[bytes, bytes]) -> bytes:
+    def decrypt(self, dk_PKE:bytes, ciphertext:bytes) -> bytes:
         """
         K-PKE.Decrypt - decrypt a ciphertext using private key s_hat.
         """
-        c1_encoded, c2_encoded = ciphertext
+        c1_encoded = ciphertext[:32*self.parameters.k * self.parameters.du]
+        c2_encoded = ciphertext[32*self.parameters.k * self.parameters.du:]
+
         c1 = Conversion.vector_byte_decode(c1_encoded, self.parameters.k, self.parameters.du)
         c2 = Conversion.byte_decode(c2_encoded, self.parameters.dv)
         u_prim = Compression.decompress_vector(c1, self.parameters.q, self.parameters.du)
@@ -218,23 +221,20 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
     def __init__(self, parameters: KyberParameters | str = "ML_KEM_768"):
         super().__init__(parameters)
 
-    def key_generation_internal(self, d_bytes:bytes, z_bytes:bytes) -> tuple[tuple[list[int], bytes], tuple[bytes, tuple[list[int], bytes], bytes, bytes]]:
+    def key_generation_internal(self, d_bytes:bytes, z_bytes:bytes) -> tuple[bytes, bytes]:
         """
         ML-KEM.KeyGen_internal - generate encapsulation and decapsulation keys (ek, dk) using randomness d and z.
         """
         ek_PKE, dk_PKE = self.key_generation_PKE(d_bytes)
 
-        ro, t_hat_encoded = ek_PKE
-        ek_bytes = t_hat_encoded + bytes(ro)
-
-        H_ek = Hash.H(ek_bytes)
+        H_ek = Hash.H(ek_PKE)
         H_ek_bytes = bytes(H_ek)
 
-        dk = (dk_PKE, ek_PKE, H_ek_bytes, z_bytes)
+        dk = dk_PKE + ek_PKE + H_ek_bytes + z_bytes
 
         return (ek_PKE, dk)
 
-    def key_generation(self) -> tuple[tuple[list[int], bytes], tuple[bytes, tuple[list[int], bytes], bytes, bytes]]:
+    def key_generation(self) -> tuple[bytes, bytes]:
         """
         ML-KEM.KeyGen - generate encapsulation and decapsulation keys (ek, dk)
         """
@@ -245,11 +245,13 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
 
         return (ek, dk)
 
-    def check_valid_ek(self, ek:tuple[list[int], bytes]) -> bool:
+    def check_valid_ek(self, ek:bytes) -> bool:
         """
         Check if the encapsulation key ek is valid.
         """
-        ro, t_hat_encoded = ek
+        t_hat_encoded = ek[:self.parameters.k * 384]
+        ro =  ek[self.parameters.k * 384:]
+
         if len(ro) != 32:
             return False
         if len(t_hat_encoded) != self.parameters.k * 384:
@@ -262,23 +264,20 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
 
         return True
 
-    def encapsulate_internal(self, ek:tuple[list[int], bytes], m_bytes:bytes) -> tuple[list[int], tuple[bytes, bytes]]:
+    def encapsulate_internal(self, ek:bytes, m_bytes:bytes) -> tuple[bytes, bytes]:
         """
         ML-KEM.Encaps_internal - generate a key and an associated ciphertext using encapsulation key ek and randomness m.
         """
-        ro, t_hat_encoded = ek
-        ek_bytes = t_hat_encoded + bytes(ro)
-
-        H_ek = Hash.H(ek_bytes)
+        H_ek = Hash.H(ek)
         H_ek_bytes = bytes(H_ek)
 
         K, r = Hash.G(m_bytes + H_ek_bytes)
 
         c = self.encrypt(ek, m_bytes, r)
 
-        return (K, c)
+        return (bytes(K), c)
     
-    def encapsulate(self, ek:tuple[list[int], bytes]) -> tuple[list[int], tuple[bytes, bytes]]:
+    def encapsulate(self, ek:bytes) -> tuple[bytes, bytes]:
         """
         ML-KEM.Encaps - generate a shared secret key and an associated ciphertext using encapsulation key ek.
         """
@@ -291,11 +290,14 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         
         return (K, c)
 
-    def check_valid_dk(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes]) -> bool:
+    def check_valid_dk(self, dk:bytes) -> bool:
         """
         Check if the decapsulation key dk is valid.
         """
-        dk_PKE, ek_PKE, H_ek_bytes, z_bytes = dk
+        dk_PKE = dk[:self.parameters.k * 384]
+        ek_PKE = dk[self.parameters.k * 384:self.parameters.k * 768 + 32]
+        H_ek_bytes = dk[self.parameters.k * 768 + 32:self.parameters.k * 768 + 64]
+        z_bytes = dk[self.parameters.k * 768 + 64:]
 
         if len(dk_PKE) != self.parameters.k * 384:
             return False
@@ -306,36 +308,35 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         if len(z_bytes) != 32:
             return False
 
-        ro, t_hat_encoded = ek_PKE
-        ek_bytes = t_hat_encoded + bytes(ro)
-        test = Hash.H(ek_bytes)
+        test = Hash.H(ek_PKE)
         if bytes(test) != H_ek_bytes:
             return False
 
         return True
     
-    def decapsulate_internal(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes], ciphertext:tuple[bytes, bytes]) -> list[int]:
+    def decapsulate_internal(self, dk:bytes, ciphertext:bytes) -> bytes:
         """
         ML-KEM.Decaps_internal - produce a shared secret key from ciphertext using the decapsulation key dk.
         """
-        dk_PKE, ek_PKE, H_ek_bytes, z_bytes = dk
+        dk_PKE = dk[:self.parameters.k * 384]
+        ek_PKE = dk[self.parameters.k * 384:self.parameters.k * 768 + 32]
+        H_ek_bytes = dk[self.parameters.k * 768 + 32:self.parameters.k * 768 + 64]
+        z_bytes = dk[self.parameters.k * 768 + 64:]
 
         m_prime = self.decrypt(dk_PKE, ciphertext)
     
         K_prime, r_prime = Hash.G(m_prime + H_ek_bytes)
 
-        c_bytes = ciphertext[0] + ciphertext[1]
-
-        K_bar = Hash.J(z_bytes + c_bytes)
+        K_bar = Hash.J(z_bytes + ciphertext)
 
         c_prime = self.encrypt(ek_PKE, m_prime, r_prime)
 
         if ciphertext != c_prime:
-            return K_bar
+            return bytes(K_bar)
         else:
-            return K_prime
+            return bytes(K_prime)
 
-    def decapsulate(self, dk:tuple[bytes, tuple[list[int], bytes], bytes, bytes], ciphertext:tuple[bytes, bytes]) -> list[int]:
+    def decapsulate(self, dk:bytes, ciphertext:bytes) -> bytes:
         """
         ML-KEM.Decaps - produce a shared secret key from ciphertext using the decapsulation key dk.
         """
