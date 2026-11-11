@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "kyber-kem"
 version = "0.1.0"
-description = "Implementation of Kyber Key Encapsulation Mechanism ML-KEM in Python"
+description = "Implementation of Kyber Key Encapsulation Mechanism ML-KEM (NIST FIPS 203) in pure Python"
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [
@@ -16,13 +16,16 @@ classifiers = [
     "Topic :: Security :: Cryptography",
 ]
 
-[project.optional-dependencies]
+[dependency-groups]
 dev = [
     "pytest>=7.0",
+    "ruff>=0.16.9",
 ]
 
-# Configuring pytest automatically
 [tool.pytest.ini_options]
 minversion = "7.0"
 testpaths = ["tests"]
 pythonpath = ["src"]
+
+[tool.ruff]
+exclude = ["notebooks"]
