@@ -1,6 +1,8 @@
+import secrets
 from hashlib import shake_256
-from random import randint
+
 from .conversion import Conversion
+
 
 class Randomness:
     ''' Random and Pseudo-random functions used in Kyber '''
@@ -93,19 +95,15 @@ class Randomness:
         return polynomial
     
     @staticmethod
-    def random_bytes(n:int) -> bytes:
+    def random_bytes(num_bytes: int = 32) -> bytes:
         """
-        Generate n / bit_len(n)-1 random bytes
+        Generate cryptographically secure random bytes.
         """
-        num_of_bytes = n // (n.bit_length()-1)
-        ints = [randint(0, n-1) for _ in range(num_of_bytes)]
-        return bytes(ints)
+        return secrets.token_bytes(num_bytes)
 
     @staticmethod
-    def random_ints(n:int) -> list[int]:
+    def random_ints(num_ints: int = 32) -> list[int]:
         """
-        Generate n / bit_len(n)-1 random integers
+        Generate a list of cryptographically secure random byte values in [0, 255].
         """
-        num_of_ints = n // (n.bit_length()-1)
-        ints = [randint(0, n-1) for _ in range(num_of_ints)]
-        return ints
+        return list(secrets.token_bytes(num_ints))
