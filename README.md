@@ -1,21 +1,25 @@
 # Kyber-KEM
 
 ![Tests](https://github.com/tomciolowsky/Kyber-KEM/actions/workflows/test.yml/badge.svg)
+![Python](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python&logoColor=white)
+![uv](https://img.shields.io/badge/uv-managed-DE5FE9.svg?logo=uv)
+![Standards](https://img.shields.io/badge/NIST-FIPS%20203-green.svg)
 
-My implementation of the Kyber Key Encapsulation Mechanism - standardized by NIST as **ML-KEM**. 
-This cryptographic approach was designed as quantum-secure, which means that it makes key exchanges viable even in case of future quantum attacks. 
+Pure-Python implementation of **ML-KEM** (Module-Lattice-Based Key-Encapsulation Mechanism), standardized by NIST in **FIPS 203** (formerly CRYSTALS-Kyber). Supports `ML-KEM-512`, `ML-KEM-768`, and `ML-KEM-1024`, validated against **240 official NIST ACVP Known Answer Test (KAT)** vectors across key generation, encapsulation, decapsulation, and key checks.
+
+> **Security Notice:** This implementation is written in pure Python for educational, research, and prototyping purposes. Python integer arithmetic and list indexing are not constant-time and are not hardened against side-channel attacks; do not use directly in production security-critical systems.
 
 ## Quick Start
 
-Simple example of key generation, encapsulation and decapsulation between Alice and Bob:
+Simple example of key generation, encapsulation, and decapsulation between Alice and Bob:
 
 ```python
 from kyber import CommunicationPartyKEM, ML_KEM_768
 
-# choose parameters (ML_KEM_512, ML_KEM_768 or ML_KEM_1024)
-kyber_parameters = ML_KEM_768 # or string: "ML_KEM_768"
+# Choose parameters (ML_KEM_512, ML_KEM_768, or ML_KEM_1024)
+kyber_parameters = ML_KEM_768  # or string: "ML_KEM_768"
 
-# initialize parties
+# Initialize parties
 Alice = CommunicationPartyKEM(kyber_parameters)
 Bob = CommunicationPartyKEM(kyber_parameters)
 
@@ -29,22 +33,27 @@ Bob_shared_secret, Bob_ciphertext = Bob.encapsulate(public_key)
 Alice_shared_secret = Alice.decapsulate(secret_key, Bob_ciphertext)
 ```
 
-Run example from the repo:
+Run examples from the repo root:
+
 ```bash
-python working_examples/kyber_kem_demo.py
+uv run python working_examples/kyber_kem_demo.py
+uv run python working_examples/kyber_pke_demo.py
 ```
 
 ## Installation
 
-Standard Installation:
+### Using uv:
+Requires [uv](https://github.com/astral-sh/uv)
 
 ```bash
 git clone https://github.com/tomciolowsky/Kyber-KEM.git
 cd Kyber-KEM
-pip install .
+
+# Install runtime and dev dependencies (pytest, ruff)
+uv sync --all-groups
 ```
 
-Development Installation (modify or run tests):
+### Using pip:
 
 ```bash
 git clone https://github.com/tomciolowsky/Kyber-KEM.git
@@ -52,46 +61,29 @@ cd Kyber-KEM
 pip install -e .[dev]
 ```
 
-## Running Tests
+## Testing & Linting
 
-I used `pytest` and KAT (Known Answer Tests) from NIST for testing.
-
-To run tests:
+Validated against 240 official NIST ACVP FIPS 203 test vectors plus unit tests:
 
 ```bash
-pytest
+# Run linter
+uv run ruff check .
+
+# Run tests
+uv run pytest -v
 ```
 
 ## Resources
 
 ### Learning Materials
+* [Cryptography 101 YouTube course by Alfred Menezes](https://www.youtube.com/@cryptography101-alfred)
+* [A Gentle Introduction to Lattice-Based Cryptography by Alfred Menezes](https://cryptography101.ca/wp-content/uploads/lattice-based-cryptography.pdf)
 
-* Ideas and general information: 
+### Papers & Standards
+* [NIST FIPS 203 — Module-Lattice-Based Key-Encapsulation Mechanism Standard](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf)
+* [NIST FIPS 202 — SHA-3 Standard (SHA3 & SHAKE)](https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.202.pdf)
 
-    [Cryptography 101 YouTube course by Alfred Menezes](https://www.youtube.com/@cryptography101-alfred)
-
-    [A Gentle Introduction to Lattice-Based Cryptography by Alfred Menezes](https://cryptography101.ca/wp-content/uploads/lattice-based-cryptography.pdf)
-
-### Papers and Standards
-* Kyber KEM paper:
-
-    [FIPS 203](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.203.pdf)
-
-* Hash Functions paper:
-
-    [FIPS 202](https://nvlpubs.nist.gov/nistpubs/fips/nist.fips.202.pdf)
-
-* Dilithium paper:
-
-    [FIPS 204](https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.204.pdf)
-
-### Test vectors
-* Official NIST repository:
-
-    [ACVP REPO](https://github.com/usnistgov/ACVP-Server)
-
-* Test vector files:
-
-    [ENCAP-DECAP](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-encapDecap-FIPS203)
-
-    [KEYGEN](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-keyGen-FIPS203)
+### Test Vectors
+* [NIST ACVP-Server Repository](https://github.com/usnistgov/ACVP-Server)
+* [ML-KEM KeyGen Vectors](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-keyGen-FIPS203)
+* [ML-KEM EncapDecap Vectors](https://github.com/usnistgov/ACVP-Server/tree/master/gen-val/json-files/ML-KEM-encapDecap-FIPS203)
