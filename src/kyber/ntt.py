@@ -99,7 +99,7 @@ class NTT:
         Returns:
             list[int]: The polynomial in NTT domain.
         '''
-        f_hat = f
+        f_hat = f.copy()
         i = 1
         length = n//2
 
@@ -132,7 +132,7 @@ class NTT:
         Returns:
             list[int]: The polynomial in standard domain.
         """
-        f = f_hat
+        f = f_hat.copy()
         i = n//2 - 1
         length = 2
         while length <= n//2:
