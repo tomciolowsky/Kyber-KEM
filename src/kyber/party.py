@@ -1,4 +1,5 @@
-from random import randint
+import hmac
+import secrets
 
 from .compression import Compression
 from .conversion import Conversion
@@ -21,25 +22,25 @@ class SimplifiedCommunicationParty:
 
         def select_A(q, k, n):
             A = []
-            for i in range(k):
+            for _ in range(k):
                 row = []
-                for j in range(k):
-                    polynomial = [randint(0, q-1) for _ in range(n)]
+                for _ in range(k):
+                    polynomial = [secrets.randbelow(q) for _ in range(n)]
                     row.append(polynomial)
                 A.append(row)
             return A
 
         def select_s(k, n, eta1):
             s = []
-            for i in range(k):
-                polynomial = [randint(-eta1, eta1) for _ in range(n)]
+            for _ in range(k):
+                polynomial = [secrets.randbelow(2 * eta1 + 1) - eta1 for _ in range(n)]
                 s.append(polynomial)
             return s
 
         def select_e(k, n, eta1):
             e = []
-            for i in range(k):
-                polynomial = [randint(-eta1, eta1) for _ in range(n)]
+            for _ in range(k):
+                polynomial = [secrets.randbelow(2 * eta1 + 1) - eta1 for _ in range(n)]
                 e.append(polynomial)
             return e
 
@@ -56,20 +57,20 @@ class SimplifiedCommunicationParty:
     def encrypt(self, text_in_bytes):
         def select_r(k, n, eta1):
             r = []
-            for i in range(k):
-                polynomial = [randint(-eta1, eta1) for _ in range(n)]
+            for _ in range(k):
+                polynomial = [secrets.randbelow(2 * eta1 + 1) - eta1 for _ in range(n)]
                 r.append(polynomial)
             return r
 
         def select_e1(k, n, eta2):
             e1 = []
-            for i in range(k):
-                polynomial = [randint(-eta2, eta2) for _ in range(n)]
+            for _ in range(k):
+                polynomial = [secrets.randbelow(2 * eta2 + 1) - eta2 for _ in range(n)]
                 e1.append(polynomial)
             return e1
 
         def select_e2(n, eta2):
-            e2 = [randint(-eta2, eta2) for _ in range(n)]
+            e2 = [secrets.randbelow(2 * eta2 + 1) - eta2 for _ in range(n)]
             return e2
 
         bitstring = Conversion.text_in_bytes_to_bitstring(text_in_bytes, self.parameters.n)
@@ -79,7 +80,7 @@ class SimplifiedCommunicationParty:
         e1 = select_e1(self.parameters.k, self.parameters.n, self.parameters.eta2)
         e2 = select_e2(self.parameters.n, self.parameters.eta2)
 
-        AT = MathOperations.matrix_transpose(self.A, self.parameters.k, self.parameters.k)
+        AT = MathOperations.matrix_transpose(self.A, self.parameters.k)
         ATr = MathOperations.multiply_square_matrix_by_vector(AT, r, self.parameters.q, self.parameters.k, self.parameters.n)
         u = MathOperations.add_vectors(ATr, e1, self.parameters.q, self.parameters.k)
 
@@ -113,12 +114,12 @@ class CommunicationPartyPKE:
         self.zetas_for_NTT = NTT.generate_zetas_for_NTT(self.parameters.n//2, self.parameters.z, self.parameters.q)
         self.zetas_for_multiply = NTT.generate_zetas_for_multiply(self.parameters.n//2, self.parameters.z, self.parameters.q)
 
-    def key_generation_PKE(self, d_bytes:bytes = None) -> tuple[bytes, bytes]:
+    def key_generation_PKE(self, d_bytes: bytes | None = None) -> tuple[bytes, bytes]:
         """
         K-PKE.KeyGen - generate public key (t_hat + ro) and private key s_hat.
         """
         if d_bytes is None:
-            d_bytes = Randomness.random_bytes(self.parameters.n)
+            d_bytes = Randomness.random_bytes(self.parameters.n // 8)
 
         ro, sigma = Hash.G(d_bytes + bytes([self.parameters.k]))
         A_hat = NTT.generate_square_matrix_NTT_from_ro(ro, self.parameters.q, self.parameters.k, self.parameters.n)
@@ -144,12 +145,12 @@ class CommunicationPartyPKE:
 
         return (ek_PKE, dk_PKE)
 
-    def encrypt(self, ek_PKE:bytes, text_in_bytes:bytes, randomness:list[int] = None) -> bytes:
+    def encrypt(self, ek_PKE: bytes, text_in_bytes: bytes, randomness: list[int] | None = None) -> bytes:
         """
         K-PKE.Encrypt - encrypt a byte message using public key (t_hat + ro) and randomness r.
         """
         if randomness is None:
-            randomness = Randomness.random_ints(self.parameters.n)
+            randomness = Randomness.random_ints(self.parameters.n // 8)
 
         t_hat_encoded = ek_PKE[:self.parameters.k * 384]
         ro =  ek_PKE[self.parameters.k * 384:]
@@ -238,8 +239,8 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         """
         ML-KEM.KeyGen - generate encapsulation and decapsulation keys (ek, dk)
         """
-        d_bytes = Randomness.random_bytes(self.parameters.n)
-        z_bytes = Randomness.random_bytes(self.parameters.n)
+        d_bytes = Randomness.random_bytes(self.parameters.n // 8)
+        z_bytes = Randomness.random_bytes(self.parameters.n // 8)
 
         ek, dk = self.key_generation_internal(d_bytes, z_bytes)
 
@@ -249,20 +250,17 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         """
         Check if the encapsulation key ek is valid.
         """
-        t_hat_encoded = ek[:self.parameters.k * 384]
-        ro =  ek[self.parameters.k * 384:]
-
-        if len(ro) != 32:
-            return False
-        if len(t_hat_encoded) != self.parameters.k * 384:
+        expected_ek_len = self.parameters.k * 384 + 32
+        if len(ek) != expected_ek_len:
             return False
 
+        t_hat_encoded = ek[: self.parameters.k * 384]
         t_hat = Conversion.vector_byte_decode(t_hat_encoded, self.parameters.k, 12)
-        test = Conversion.vector_byte_encode(t_hat, 12)
-        if test != t_hat_encoded:
+        if not all(coeff < self.parameters.q for poly in t_hat for coeff in poly):
             return False
 
-        return True
+        test = Conversion.vector_byte_encode(t_hat, 12)
+        return test == t_hat_encoded
 
     def encapsulate_internal(self, ek:bytes, m_bytes:bytes) -> tuple[bytes, bytes]:
         """
@@ -284,7 +282,7 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         if not self.check_valid_ek(ek):
             raise ValueError("Invalid encapsulation key.")
 
-        m_bytes = Randomness.random_bytes(self.parameters.n)
+        m_bytes = Randomness.random_bytes(self.parameters.n // 8)
 
         K, c = self.encapsulate_internal(ek, m_bytes)
         
@@ -294,25 +292,18 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         """
         Check if the decapsulation key dk is valid.
         """
-        dk_PKE = dk[:self.parameters.k * 384]
-        ek_PKE = dk[self.parameters.k * 384:self.parameters.k * 768 + 32]
-        H_ek_bytes = dk[self.parameters.k * 768 + 32:self.parameters.k * 768 + 64]
-        z_bytes = dk[self.parameters.k * 768 + 64:]
+        expected_dk_len = self.parameters.k * 768 + 96
+        if len(dk) != expected_dk_len:
+            return False
 
-        if len(dk_PKE) != self.parameters.k * 384:
-            return False
+        ek_PKE = dk[self.parameters.k * 384 : self.parameters.k * 768 + 32]
+        H_ek_bytes = dk[self.parameters.k * 768 + 32 : self.parameters.k * 768 + 64]
+
         if not self.check_valid_ek(ek_PKE):
-            return False
-        if len(H_ek_bytes) != 32:
-            return False
-        if len(z_bytes) != 32:
             return False
 
         test = Hash.H(ek_PKE)
-        if bytes(test) != H_ek_bytes:
-            return False
-
-        return True
+        return bytes(test) == H_ek_bytes
     
     def decapsulate_internal(self, dk:bytes, ciphertext:bytes) -> bytes:
         """
@@ -331,10 +322,9 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
 
         c_prime = self.encrypt(ek_PKE, m_prime, r_prime)
 
-        if ciphertext != c_prime:
+        if not hmac.compare_digest(ciphertext, c_prime):
             return bytes(K_bar)
-        else:
-            return bytes(K_prime)
+        return bytes(K_prime)
 
     def decapsulate(self, dk:bytes, ciphertext:bytes) -> bytes:
         """
@@ -342,6 +332,10 @@ class CommunicationPartyKEM(CommunicationPartyPKE):
         """
         if not self.check_valid_dk(dk):
             raise ValueError("Invalid decapsulation key.")
+
+        expected_ct_len = 32 * (self.parameters.k * self.parameters.du + self.parameters.dv)
+        if len(ciphertext) != expected_ct_len:
+            raise ValueError(f"Invalid ciphertext length: expected {expected_ct_len} bytes, got {len(ciphertext)}.")
 
         K_prime = self.decapsulate_internal(dk, ciphertext)
         return K_prime
