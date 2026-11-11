@@ -66,10 +66,10 @@ class Conversion:
             ints (list[int]): The list of integers to convert.
         """
         bit_list = [0]*(len(ints)*8)
-        for i in range(len(ints)):
+        for i, val in enumerate(ints):
             for j in range(8):
-                bit_list[i*8 + j] = ints[i] % 2
-                ints[i] = ints[i] // 2
+                bit_list[i*8 + j] = val % 2
+                val = val // 2
         return bit_list
 
     @staticmethod
