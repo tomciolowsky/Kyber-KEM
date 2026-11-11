@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 
+
 @dataclass(frozen=True)
 class SimplifiedKyberParameters:
     ''' ML-KEM-768 domain parameters used in simplified Kyber PKE '''

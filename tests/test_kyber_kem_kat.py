@@ -1,5 +1,6 @@
 import json
 import pathlib
+
 import pytest
 
 from tests.adapters import NIST_to_CommunicationPartyKEM

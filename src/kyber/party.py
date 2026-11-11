@@ -3,11 +3,11 @@ import secrets
 
 from .compression import Compression
 from .conversion import Conversion
-from .ntt import NTT
-from .math_operations import MathOperations
-from .parameters import SimplifiedKyberParameters, KyberParameters
-from .randomness import Randomness
 from .hash import Hash
+from .math_operations import MathOperations
+from .ntt import NTT
+from .parameters import KyberParameters, SimplifiedKyberParameters
+from .randomness import Randomness
 
 
 class SimplifiedCommunicationParty:

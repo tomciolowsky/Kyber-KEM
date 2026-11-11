@@ -1,5 +1,6 @@
 from kyber import CommunicationPartyKEM
 
+
 class NIST_to_CommunicationPartyKEM:
     def __init__(self, parameter_set:str):
         self.kem = CommunicationPartyKEM(parameter_set)

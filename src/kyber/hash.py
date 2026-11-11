@@ -1,4 +1,5 @@
-from hashlib import sha3_256, sha3_512, shake_256 
+from hashlib import sha3_256, sha3_512, shake_256
+
 
 class Hash:
     ''' Hash functions used in Kyber '''
