@@ -24,14 +24,15 @@ class KyberParameters:
 
     @classmethod
     def match_name(cls, name: str) -> "KyberParameters":
-        if "512" in name:
-            return ML_KEM_512
-        elif "768" in name:
-            return ML_KEM_768
-        elif "1024" in name:
-            return ML_KEM_1024
-        else:
-            raise ValueError(f"Unknown Kyber parameter set: {name}. Try: 'ML_KEM_512', 'ML_KEM_768', or 'ML_KEM_1024'.")
+        normalized = name.strip().upper().replace("-", "_")
+        mapping = {
+            "ML_KEM_512": ML_KEM_512,
+            "ML_KEM_768": ML_KEM_768,
+            "ML_KEM_1024": ML_KEM_1024,
+        }
+        if normalized in mapping:
+            return mapping[normalized]
+        raise ValueError(f"Unknown Kyber parameter set: {name}. Try: 'ML_KEM_512', 'ML_KEM_768', or 'ML_KEM_1024'.")
 
 
 ML_KEM_512 = KyberParameters(k=2, eta1=3, eta2=2, du=10, dv=4)
