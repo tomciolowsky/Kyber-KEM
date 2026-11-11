@@ -1,8 +1,13 @@
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).parent))
+
 from poems import poems
 
-from kyber import CommunicationPartyPKE, ML_KEM_512, ML_KEM_768, ML_KEM_1024
+from kyber import ML_KEM_768, CommunicationPartyPKE
 
-kyber_parameters = ML_KEM_768 # or ML_KEM_512 or ML_KEM_1024
+kyber_parameters = ML_KEM_768  # or ML_KEM_512 or ML_KEM_1024
 
 Alice = CommunicationPartyPKE(kyber_parameters)
 Bob = CommunicationPartyPKE(kyber_parameters)
